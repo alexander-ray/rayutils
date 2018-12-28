@@ -1,29 +1,6 @@
 import networkx as nx
 import numpy as np
 
-def tau_calc_95_rel(mae, n):
-    alpha = (0.008145*np.log(n)) - 0.112217
-    beta = (-1*0.0451396*np.log(n)) + 0.623809
-    ret = (mae - beta)/alpha
-    return np.ceil(np.exp(ret)).astype(int)
-
-
-def tau_calc_95_rel_c_1(mae, n):
-    alpha = (0.0038521*np.log(n)) - 0.15962889
-    beta = (-1*0.02123643*np.log(n)) + 0.89005047
-    ret = (mae - beta)/alpha
-    return np.ceil(np.exp(ret)).astype(int)
-
-
-def tau_calc_95_abs_curve(mae, n):
-    num = 1.295 * np.log(n) + 0.481
-    return np.ceil((num/mae)**2).astype(int)
-
-
-def tau_calc_95_rel_curve(mae, n):
-    num = (-1 * 0.061) * np.log(n) + 2.114
-    return np.ceil((num/mae)**2).astype(int)
-
 
 def sampler(G, num_samples):
     counter = 0
@@ -73,27 +50,6 @@ def sampler_no_rejection_igraph(G, num_samples):
     tmp = [s**2 for s in component_sizes]
     probabilities = [n / sum(tmp) for n in tmp]
     print(probabilities)
-    for x in range(num_samples):
-        subgraph_index = np.random.choice(num_components, p=probabilities)
-        i, j = np.random.choice(components[subgraph_index], 2, replace=True)
-        sp = G.shortest_paths(source=i, target=j, weights=None)[0][0]
-        tracker += sp
-
-    # Return simple mean
-    return tracker / num_samples
-
-
-def sampler_no_rejection_igraph_tmp(G, num_samples):
-    tracker = 0
-
-    # Get list of connected component subgraphs
-    components = G.components()
-    num_components = len(components)
-    component_sizes = [s for s in components.sizes()]
-
-    # Make probabilities proportional to n_i ** 2
-    tmp = [s**2 for s in component_sizes]
-    probabilities = [n / sum(tmp) for n in tmp]
     for x in range(num_samples):
         subgraph_index = np.random.choice(num_components, p=probabilities)
         i, j = np.random.choice(components[subgraph_index], 2, replace=True)

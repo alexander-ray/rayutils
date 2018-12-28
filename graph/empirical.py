@@ -1,24 +1,15 @@
 import networkx as nx
 import igraph
 
-import pandas as pd
-import os
-
-
-def get_gml_paths(catalog_path, query):
-    gmlcatalog = pd.read_pickle(catalog_path)
-    simplegmls = gmlcatalog.query(query)
-    files = set(simplegmls.index)
-    paths = []
-    # https://stackoverflow.com/questions/954504/
-    for dirpath, dirnames, filenames in os.walk("/Volumes/Samsung_T3/gmls/Anna"):
-        for filename in [f for f in filenames if f.endswith(".gml")]:
-            if filename in files:
-                paths.append(os.path.join(dirpath, filename))
-    return paths
-
 
 def networkx_from_gml(filepath):
+    """
+    Normal method to read GML file into networkx graph.
+    Will convert directed to undirected and converts node labels to integers.
+
+    :param filepath: Path of GML file
+    :return: nx.Graph
+    """
     # https://stackoverflow.com/questions/16840554/
     def peek_line(f):
         pos = f.tell()
@@ -51,14 +42,31 @@ def networkx_from_gml(filepath):
 
 
 def networkx_from_gml_faster(filepath):
+    """
+    Faster method to read GML file into networkx graph using igraph.
+    Reads GML with igraph, converts to undirected, and uses edge list to create corresponding nx.Graph
+
+    :param filepath: Path of GML file
+    :return: nx.Graph
+    """
     G = igraph.read(filepath)
-    G.to_undirected(combine_edges='ignore')
+    G.to_undirected(combine_edges=None)
+    G.simplify(multiple=True, loops=True, combine_edges=None)
     edges = [e.tuple for e in G.es]
     G_nx = nx.Graph()
     G_nx.add_edges_from(edges)
     return G_nx
 
+
 def igraph_from_gml(filepath):
+    """
+    Helper method to read GML file into igraph.
+    Converts to undirected network.
+
+    :param filepath: Path of GML file
+    :return: igraph.Graph
+    """
     G = igraph.read(filepath)
-    G.to_undirected(combine_edges='ignore')
+    G.to_undirected(combine_edges=None)
+    G.simplify(multiple=True, loops=True, combine_edges=None)
     return G
