@@ -18,7 +18,7 @@ mpl.rcParams['axes.prop_cycle'] = cycler('color',
 # Fonts
 mpl.rcParams['font.family'] = 'sans-serif'
 mpl.rcParams['font.sans-serif'] = ['Helvetica']
-mpl.rcParams['font.size'] = 16
+mpl.rcParams['font.size'] = 20
 # Setting normal framing colors to off-black
 mpl.rcParams['text.color'] = black
 mpl.rcParams['axes.labelcolor'] = black
@@ -26,13 +26,14 @@ mpl.rcParams['axes.edgecolor'] = black
 mpl.rcParams['xtick.color'] = black
 mpl.rcParams['ytick.color'] = black
 # Background to off-white
-mpl.rcParams['figure.facecolor'] = white
-#mpl.rcParams['figure.facecolor'] = '#ffffff'
+#mpl.rcParams['figure.facecolor'] = white
+mpl.rcParams['figure.facecolor'] = '#ffffff'
 # Legend
 mpl.rcParams['legend.framealpha'] = 0
 mpl.rcParams['legend.borderpad'] = 0
 mpl.rcParams['legend.markerscale'] = 1.2
 mpl.rcParams['legend.handlelength'] = 0.8
+mpl.rcParams['legend.fontsize'] = 12
 mpl.rcParams['legend.frameon'] = False
 mpl.rcParams['legend.handletextpad'] = 0.2
 # Grid

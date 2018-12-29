@@ -38,6 +38,7 @@ def networkx_from_gml(filepath):
     if G.is_directed():
         G = G.to_undirected()
 
+    G.remove_edges_from(G.selfloop_edges())
     return G
 
 
