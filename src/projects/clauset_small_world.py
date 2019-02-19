@@ -3,30 +3,98 @@ import pandas as pd
 from itertools import product
 import numpy as np
 import math
+import csv
 """
 Utility function module for small-world analysis
 """
 
 
-def get_gml_paths(catalog_path, file_root, query):
+def get_gml_paths(catalog_path, file_root, query, size_limit=None):
     """
     Helper function to query existing pandas catalog and retrieve full paths for all GML files in catalog.
 
     :param catalog_path: Path to existing pandas catalog
     :param file_root: Root for directory containing GML files
     :param query: Query string for pandas
+    :param size_limit: Limit the size of files returned, in bytes
     :return: Tuple containing pandas query results and list of absolute paths
     """
     gmlcatalog = pd.read_pickle(catalog_path)
     simplegmls = gmlcatalog.query(query)
     files = set(simplegmls.index)
     paths = []
+    sizes = []
     # https://stackoverflow.com/questions/954504/
     for dirpath, dirnames, filenames in os.walk(file_root):
         for filename in [f for f in filenames if f.endswith(".gml")]:
-            if filename in files:
-                paths.append(os.path.join(dirpath, filename))
-    return simplegmls, paths
+            if size_limit:
+                if filename in files and os.path.getsize(os.path.join(dirpath, filename)) < size_limit:
+                    paths.append(os.path.join(dirpath, filename))
+                    sizes.append((os.path.join(dirpath, filename), os.path.getsize(os.path.join(dirpath, filename))))
+            else:
+                if filename in files:
+                    paths.append(os.path.join(dirpath, filename))
+    return simplegmls, paths, sizes
+
+
+def get_paths_by_acceptability(catalog_path, file_root):
+    acc = set()
+    ret = {}
+    query = '(Weighted==False) & \
+              (Directed==False) & \
+              (Bipartite==False) & \
+              (Multigraph==False) & \
+              (Multiplex==False)'
+    _, paths, _ = get_gml_paths(catalog_path, file_root, query)
+    ret['ok'] = paths
+    acc = acc.union(paths)
+
+    query = '(Weighted==False) & \
+                  (Directed==False | Directed==True) & \
+                  (Bipartite==False) & \
+                  (Multigraph==False) & \
+                  (Multiplex==False)'
+    _, paths, _ = get_gml_paths(catalog_path, file_root, query)
+    ret['ok+directed'] = list(set(paths).difference(acc))
+    acc = acc.union(paths)
+
+    query = '(Weighted==False) & \
+                      (Directed==False | Directed==True) & \
+                      (Bipartite==False) & \
+                      (Multigraph==False | Multigraph==True) & \
+                      (Multiplex==False)'
+    _, paths, _ = get_gml_paths(catalog_path, file_root, query)
+    ret['ok+multigraph'] = list(set(paths).difference(acc))
+    acc = acc.union(paths)
+
+    query = '(Weighted==False | Weighted==True) & \
+              (Directed == False | Directed==True) & \
+              (Bipartite == False) & \
+              (Multigraph == False | Multigraph==True) & \
+              (Multiplex==False | Multiplex==True)'
+
+    _, paths, _ = get_gml_paths(catalog_path, file_root, query)
+    ret['iffy'] = list(set(paths).difference(acc))
+    acc = acc.union(paths)
+
+    return ret
+
+
+def remove_paths_by_keywords(paths, keywords):
+    assert type(paths) == dict
+    for k in paths.keys():
+        paths[k] = [e for e in paths[k] if not any((key.lower() in e.lower() for key in keywords))]
+    return paths
+
+
+def cut_down_groups_of_paths(paths, group_keywords, num_to_keep=5):
+    assert type(paths) == list
+    for kw in group_keywords:
+        paths_without = [p for p in paths if kw.lower() not in p.lower()]
+        paths_with = [p for p in paths if kw.lower() in p.lower()]
+        new_paths_with = [paths_with[i] for i in np.linspace(0, len(paths_with)-1, num_to_keep, dtype=int)]
+        paths = paths_without + new_paths_with
+    return paths
 
 
 def tau_calc_95_rel(mae, n):

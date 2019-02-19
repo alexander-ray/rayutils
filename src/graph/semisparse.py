@@ -3,8 +3,6 @@ import numpy as np
 import numba as nb
 jit = nb.jit
 
-# TODO: Test changes to APSP
-
 
 def all_pairs_shortest_paths(G):
     """
@@ -13,19 +11,47 @@ def all_pairs_shortest_paths(G):
     :param G: nx.Graph
     :return: 1d ndarray of size \sum_{i}n_i^2 where n_i is the number of nodes in the ith connected component
     """
+    if len(G) <= 1:
+        return np.array([])
     if nx.is_connected(G):
-        return _all_pairs_shortest_paths_preprocessor(G)
+        return _all_pairs_shortest_paths_preprocessor(G, rolling_sum=False)
     else:
         results = []
         gen = (G.subgraph(c) for c in nx.connected_components(G))
         for g in gen:
-            res = _all_pairs_shortest_paths_preprocessor(g)
+            res = _all_pairs_shortest_paths_preprocessor(g, rolling_sum=False)
             if res is not None:
                 results.append(res)
         return np.concatenate(results)
 
 
-def _all_pairs_shortest_paths_preprocessor(G):
+def all_pairs_shortest_paths_rolling_sum(G):
+    """
+    Driver function for fast APSP algorithm on simple graph with multiple disconnected components.
+    Does a rolling sum instead of maintaining an nxn distance matrix
+
+    :param G: nx.Graph
+    :return: Tuple, (num distances, sum distances)
+    """
+    if len(G) <= 1:
+        return 0, 0
+    if nx.is_connected(G):
+        return len(G)**2, _all_pairs_shortest_paths_preprocessor(G, rolling_sum=True)
+    else:
+        num_distances = 0
+        sum_distances = 0
+        gen = (G.subgraph(c) for c in nx.connected_components(G))
+        for g in gen:
+            if len(g) == 1:
+                continue
+            res = _all_pairs_shortest_paths_preprocessor(g, rolling_sum=True)
+            # Increase num distances by size of comp squared
+            num_distances += len(g) ** 2
+            sum_distances += res
+        return num_distances, sum_distances
+
+
+def _all_pairs_shortest_paths_preprocessor(G, rolling_sum=True):
     """
     Helper function for APSP on single connected component
 
@@ -38,7 +64,10 @@ def _all_pairs_shortest_paths_preprocessor(G):
 
     tracker = np.full(num_nodes, -1, dtype=np.int64)
     G_numpy = _to_semisparse_matrix(G, num_nodes, max_degree)
-    return _all_pairs_shortest_paths_driver(G_numpy, num_nodes, node_list, max_degree, tracker)
+    if rolling_sum:
+        return _all_pairs_shortest_paths_rolling_sum_driver(G_numpy, num_nodes, node_list, max_degree, tracker)
+    else:
+        return _all_pairs_shortest_paths_driver(G_numpy, num_nodes, node_list, max_degree, tracker)
 
 
 def _to_semisparse_matrix(G, num_nodes, max_degree):
@@ -60,7 +89,7 @@ def _to_semisparse_matrix(G, num_nodes, max_degree):
         for row in rows:
             yield np.pad(row, (0, max_degree - len(row)), 'constant', constant_values=-1)
 
-    return np.array(np.stack(generate_rows(G.rows)), dtype=np.int64)
+    return np.array(np.stack(list(generate_rows(G.rows))), dtype=np.int64)
 
 
 @jit(nopython=True, nogil=True)
@@ -80,6 +109,24 @@ def _all_pairs_shortest_paths_driver(G, num_nodes, node_list, max_degree, tracke
         start = i * num_nodes
         results[start:start+num_nodes] = _bfs_distances(G, i, num_nodes, max_degree, tracker)
     return results
+
+
+@jit(nopython=True, nogil=True)
+def _all_pairs_shortest_paths_rolling_sum_driver(G, num_nodes, node_list, max_degree, tracker):
+    """
+    Jitted driver function for single-component APSP, returning sum of distances
+
+    :param G: Semisparse matrix
+    :param num_nodes: Number of nodes in component
+    :param node_list: List of nodes
+    :param max_degree: Max degree of nodes
+    :param tracker: Tracker ndarray to maintain neighbor
+    :return: float
+    """
+    sum_distances = 0.0
+    for i in node_list:
+        sum_distances += np.sum(_bfs_distances(G, i, num_nodes, max_degree, tracker))
+    return sum_distances
 
 
 @jit(nopython=True, nogil=True)
