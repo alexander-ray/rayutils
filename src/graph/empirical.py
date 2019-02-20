@@ -40,8 +40,15 @@ def networkx_to_igraph(G):
     :param G: nx.Graph
     :return: igraph.Graph
     """
+    # Check to make sure nx graph starts at zero
+    # If not, force it too
+    # Otherwise, the igraph graph will have dangling '0' node
+    if not G.has_node(0):
+        G = nx.convert_node_labels_to_integers(G, first_label=0)
+
     edges = [e for e in G.edges]
-    return igraph.Graph(edges=edges, directed=False)
+    # setting n insures dangling nodes are kept
+    return igraph.Graph(n=len(G), edges=edges, directed=False)
 
 
 def igraph_to_networkx(g):
@@ -53,5 +60,6 @@ def igraph_to_networkx(g):
     """
     edges = [e.tuple for e in g.es]
     G = nx.Graph()
+    G.add_nodes_from(range(g.vcount()))
     G.add_edges_from(edges)
     return G

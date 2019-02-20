@@ -10,14 +10,14 @@ from src.graph import semisparse as ss
 def test_empty_num_distances():
     G = nx.Graph()
     num_distances, _ = ss.all_pairs_shortest_paths_rolling_sum(G)
-    assert num_distances == 0  # convention
+    assert num_distances == 1  # convention
 
 
 def test_singleton_num_distances():
     G = nx.Graph()
     G.add_node(1)
     num_distances, _ = ss.all_pairs_shortest_paths_rolling_sum(G)
-    assert num_distances == 0  # convention
+    assert num_distances == 1  # convention
 
 
 def test_single_edge_num_distances():
@@ -45,7 +45,7 @@ def test_three_components_num_distances():
     G.add_edges_from([(4, 5), (5, 6), (6, 4)])
     G.add_node(9)
     num_distances, _ = ss.all_pairs_shortest_paths_rolling_sum(G)
-    assert num_distances == 3**2 + 3**2 + 0
+    assert num_distances == 3**2 + 3**2 + 1
 
 
 def test_three_components_num_distances_2():

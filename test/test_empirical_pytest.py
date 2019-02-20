@@ -42,6 +42,8 @@ def test_nx_to_igraph_3():
     G.add_node(9)
     g = networkx_to_igraph(G)
 
+    # Account for G change in networkx_to_igraph
+    G = nx.convert_node_labels_to_integers(G, first_label=0)
     assert round(nx.degree_assortativity_coefficient(G), 6) == round(g.assortativity_degree(), 6) \
            and len(G) == g.vcount() and G.number_of_edges() == g.ecount() \
            and list(sorted(list(G.edges))) == list(sorted([e.tuple for e in g.es]))
@@ -86,6 +88,20 @@ def test_igraph_to_nx_2():
 def test_igraph_to_nx_3():
     g = igraph.Graph(directed=False)
     g.add_vertices(6)
+    # First triad
+    g.add_edges([(0, 1), (1, 2), (2, 0)])
+    g.add_edges([(3, 4), (4, 5)])
+    G = igraph_to_networkx(g)
+
+    assert round(nx.degree_assortativity_coefficient(G), 6) == round(g.assortativity_degree(), 6) \
+           and len(G) == g.vcount() and G.number_of_edges() == g.ecount() \
+           and list(sorted(list(G.edges))) == list(sorted([e.tuple for e in g.es]))
+
+
+def test_igraph_to_nx_4():
+    g = igraph.Graph(directed=False)
+    # Add extra dangling nodes
+    g.add_vertices(8)
     # First triad
     g.add_edges([(0, 1), (1, 2), (2, 0)])
     g.add_edges([(3, 4), (4, 5)])

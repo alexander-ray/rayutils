@@ -34,7 +34,7 @@ def all_pairs_shortest_paths_rolling_sum(G):
     :return: Tuple, (num distances, sum distances)
     """
     if len(G) <= 1:
-        return 0, 0
+        return 1, 0
     if nx.is_connected(G):
         return len(G)**2, _all_pairs_shortest_paths_preprocessor(G, rolling_sum=True)
     else:
@@ -43,6 +43,8 @@ def all_pairs_shortest_paths_rolling_sum(G):
         gen = (G.subgraph(c) for c in nx.connected_components(G))
         for g in gen:
             if len(g) == 1:
+                # Add single node to denomenator
+                num_distances += 1
                 continue
             res = _all_pairs_shortest_paths_preprocessor(g, rolling_sum=True)
             # Increase num distances by size of comp squared
