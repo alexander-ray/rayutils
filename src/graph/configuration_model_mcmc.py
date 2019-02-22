@@ -57,13 +57,14 @@ class AbstractMCMCSampler(ABC):
         def populate_assortivaties():
             assort_arr = []
             for _ in range(samples_per_group):
-                for _ in range(int(np.ceil(t/2/samples_per_group))):
+                for _ in range(int(np.ceil(t/samples_per_group))):
                     self._swap()
                 assort_arr.append(networkx_to_igraph(self._G).assortativity_degree(directed=False))
-            return np.histogram(assort_arr, bins)[0]
+            #return np.histogram(assort_arr, bins)[0]
+            return assort_arr
 
         t = self._m  # Number of swaps in a "group"
-        samples_per_group = 100
+        samples_per_group = 30
         total_swaps = 0
         bins = np.linspace(-1, 1, 201)
 
@@ -71,11 +72,11 @@ class AbstractMCMCSampler(ABC):
         while not threshold_met:
             assort1 = populate_assortivaties()
             assort2 = populate_assortivaties()
-            total_swaps += t
+            total_swaps += 2*t
             #print(ks_2samp(assort1, assort2))
-            print('%s %s %s', entropy(assort1, assort2), entropy(assort1), entropy(assort2))
-
-            if np.abs(entropy(assort1) - entropy(assort2)) < threshold:
+            #print('%s %s %s', entropy(assort1, assort2), entropy(assort1), entropy(assort2))
+            #print(np.abs(np.mean(assort1) - np.mean(assort2)))
+            if np.abs(np.mean(assort1) - np.mean(assort2)) < threshold:
                 threshold_met = True
         return total_swaps, total_swaps/self._m
 

@@ -19,4 +19,6 @@ def apsp_multi_component(g):
         denom = np.sum([len(x)**2 for x in components])
         for c in components:
             num += np.sum(g.shortest_paths(source=c, target=c, weights=None, mode='OUT'))
-        return denom, num
+        if denom == 0:
+            return 0
+        return num/denom
